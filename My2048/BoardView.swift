@@ -10,12 +10,14 @@ import UIKit
 
 class BoardView: UIView{
     
-    var blockValue:Int = 0 {
-        didSet {
-            self.label.textColor = getFontColor(blockValue)
-            self.label.text = "\(self.blockValue)"
-        }
-    }
+    let blockRadius:CGFloat = 4
+    var blockValue:Int = 0
+//        {
+//        didSet {
+//            self.label.textColor = getFontColor(blockValue)
+//            self.label.text = "\(self.blockValue)"
+//        }
+//    }
     var label:UILabel = UILabel()
     
     // 方块颜色和分数的对应关系234 187 25
@@ -45,6 +47,7 @@ class BoardView: UIView{
         self.label = UILabel(frame: CGRect(origin: CGPoint(x: 0, y: 0), size:size))
         let bv = getRandScore()
         self.blockValue = bv
+        self.layer.cornerRadius = blockRadius
         self.backgroundColor = self.bgColorWithScore[bv]
         self.label.text = "\(self.blockValue)"
         var font = UIFont(name: "American Typewriter", size: getFontSize(bv))
@@ -59,7 +62,7 @@ class BoardView: UIView{
         super.init(frame: CGRect(origin: point,size: size))
         self.label = UILabel(frame: CGRect(origin: CGPoint(x: 0, y: 0), size:size))
         self.blockValue = bv
-        println("置换block:\(bv)")
+        self.layer.cornerRadius = blockRadius
         self.backgroundColor = self.bgColorWithScore[bv]
         self.label.text = "\(self.blockValue)"
         var font = UIFont(name: "American Typewriter", size: getFontSize(bv))
@@ -76,6 +79,12 @@ class BoardView: UIView{
     
     func getRandScore() -> Int{
         return arc4random() % 2 == 0 ? 2 : 4
+    }
+    
+    func update(){
+        self.label.textColor = getFontColor(self.blockValue)
+        self.label.text = "\(self.blockValue)"
+        self.backgroundColor = self.bgColorWithScore[self.blockValue]
     }
 
     required init(coder aDecoder: NSCoder) {

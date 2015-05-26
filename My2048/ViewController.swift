@@ -18,8 +18,10 @@ class ViewController: UIViewController {
     var bt:CGFloat = 0  // 存储棋盘到顶层view顶端的距离
     var bl:CGFloat = 0  // 存储棋盘到顶层view左侧的距离
     var blockSize:CGSize = CGSize() //方格的大小
-    var deminsion = 5 //方格阵列的维度
+    var deminsion = 4 //方格阵列的维度
     var blockHolder = [[BoardView?]]() //存放方块的地方
+    let boardRadius:CGFloat = 6
+    let animationDuration = 0.3
     
     // 手势滑动的方向
     enum PanDirection:Int{
@@ -27,10 +29,6 @@ class ViewController: UIViewController {
         case right
         case up
         case down
-        
-        var description:String{
-            return "shit"
-        }
     }
     
     override func viewDidLoad() {
@@ -40,13 +38,14 @@ class ViewController: UIViewController {
         self.view.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: "pan:"))
     }
 
+    //游戏开始
     @IBAction func startButtonTapped(sender: UIButton) {
         let paddingTwoSide:CGFloat = 10
         let bwidth = self.view.bounds.width - 2 * paddingTwoSide
-        let topYCoord = (self.view.bounds.height - bwidth)/2
+        let topYCoord = self.view.bounds.height - bwidth * 5 / 4
         board = UIView(frame: CGRect(origin: CGPoint(x: paddingTwoSide, y:topYCoord), size: CGSize(width: bwidth, height: bwidth)))
         board.backgroundColor = UIColor(red: 0.675, green: 0.61, blue: 0.56, alpha: 1)
-        board.layer.cornerRadius = 6
+        board.layer.cornerRadius = boardRadius
         self.view.addSubview(board)
         
         bt = board.center.y - board.bounds.width/2
@@ -54,18 +53,9 @@ class ViewController: UIViewController {
 
         showBlockWithDimen(dimensions: deminsion)
         initBlockHolder()
-//        showRand()
         appendOneBlock()
     }
     
-    
-//    var d:BoardView = BoardView(point: CGPoint(x: 0, y: 0), size: CGSize(width: 0, height: 0), stage: UIView())
-    func showRand(){
-//        d = BoardView(point: getSpecPoint(2, y: 1), size: blockSize, stage: self.view)
-//        d = UIView(frame: CGRect(origin: getSpecPoint(2, y: 3), size: blockSize))
-//        d.backgroundColor = UIColor.redColor()
-//        d.showIn(inview: self.view)
-    }
     
     //获取触摸事件
     var panDelta:CGPoint = CGPoint()
@@ -77,17 +67,23 @@ class ViewController: UIViewController {
         }
         if sender.state == .Ended {
             if let dir = getPanDirection(panDelta, velocity: panVelocity){
-                moveBlockAfterPan(dir)
-                appendOneBlock()
+                if moveBlockAfterPan(dir){
+                    if hasEmptySpace(){
+                        appendOneBlock()
+                        if isGameOver(){
+                            println("game over")
+                        }
+                    }
+                }
             }
         }
     }
     
     func getPanDirection( delta:CGPoint, velocity:CGPoint )->PanDirection?{
-        if abs(velocity.x)<200 && abs(velocity.y)<200{
-            return nil
-        }
-        if abs(delta.x)<70 && abs(delta.y)<70{
+//        if abs(velocity.x)<80 && abs(velocity.y)<80{
+//            return nil
+//        }
+        if abs(delta.x)<30 && abs(delta.y)<30{
             return nil
         }
         let sw = (delta.x,delta.y)
@@ -112,68 +108,250 @@ class ViewController: UIViewController {
         if let tmp = blockHolder[x][y]{
             appendOneBlock()
         }else {
-            blockHolder[x][y] = BoardView(point: getSpecPoint(x, y: y), size: blockSize, stage: self.view)
+            blockHolder[x][y] = BoardView(point: getSpecPoint(y, y: x), size: blockSize, stage: self.view)
         }
     }
     
     
     //根据触摸的方向移动方块
-    func moveBlockAfterPan( direction:PanDirection ){
-        if direction == PanDirection.left{
-            for y in 0 ..< deminsion{ //遍历列
-                for x in 1 ..< deminsion{  //遍历行
-                    if blockHolder[y][x] == nil{
+    func moveBlockAfterPan( direction:PanDirection )->Bool{
+        var count = 0
+        if direction == .left{ //左移
+            for x in 0 ..< deminsion{
+                for y in 1 ..< deminsion{   //每一行
+                    if blockHolder[x][y] == nil{
                         continue
                     }
-                    for tmp in 1 ... x{
-                        if blockHolder[y][x-tmp] == nil{
-                            if tmp != x{
+                    for t in 1 ... y{
+                        if blockHolder[x][y-t] == nil{
+                            if y-t == 0{
+                                //移动方块到行首
+                                blockHolder[x][0] = BoardView(point: getSpecPoint(0, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(0, y: x), moveCompleted: {
+                                    assert(self.blockHolder[x][0] != nil, "shit happened:\(x):\(y)-->\(x):\(0)")
+                                    self.view.addSubview( self.blockHolder[x][0]! )
+                                    tmp.removeFromSuperview()
+                                })
+                                blockHolder[x][y]!.removeFromSuperview()
+                                blockHolder[x][y] = nil
+                                count++
+                                break
+                            }else{
                                 continue
-                            } else { //到达行首
-                                var holder1 = BoardView(point: getSpecPoint(x, y: y), size: blockSize, bv: blockHolder[y][x]!.blockValue)
-                                self.view.addSubview(holder1)
-                                holder1.moveMySelf(to: getSpecCenter(x-tmp, y: y),moveCompleted:{
-                                    holder1.removeFromSuperview()
-                                    self.view.addSubview(self.blockHolder[y][x-tmp]!)
-                                })
-                                self.blockHolder[y][x-tmp] = BoardView(point: self.getSpecPoint(x-tmp, y: y), size: self.blockSize, bv: self.blockHolder[y][x]!.blockValue)
-                                self.blockHolder[y][x]?.removeFromSuperview()
-                                self.blockHolder[y][x] = nil
-                                break
                             }
-                        } else {
-                            if blockHolder[y][x-tmp]?.blockValue == blockHolder[y][x]?.blockValue {
-                                var holder1 = BoardView(point: getSpecPoint(x, y: y), size: blockSize, bv: blockHolder[y][x]!.blockValue)
-                                var holder2 = BoardView(point: getSpecPoint(x-tmp, y: y), size: blockSize, bv: blockHolder[y][x-tmp]!.blockValue)
-                                self.blockHolder[y][x-tmp]?.removeFromSuperview()
-                                self.blockHolder[y][x]?.removeFromSuperview()
-                                self.blockHolder[y][x-tmp] = BoardView(point: getSpecPoint(x-tmp, y: y), size: blockSize, bv: blockHolder[y][x-tmp]!.blockValue * 2)
-                                self.blockHolder[y][x] = nil
-                                println("遇到相同的了\(x):\(y)-->\(x-tmp):\(y)")
-                                self.view.addSubview(holder1)
-                                self.view.addSubview(holder2)
-                                holder1.moveMySelf(to: getSpecCenter(x-tmp, y: y),moveCompleted:{
-                                    self.view.addSubview(self.blockHolder[y][x-tmp]!)
-                                    holder2.removeFromSuperview()
-                                    holder1.removeFromSuperview()
+                        }else{
+                            if blockHolder[x][y-t]!.blockValue == blockHolder[x][y]!.blockValue{ //两个方块的值相同，融合
+                                blockHolder[x][y-t]!.blockValue = blockHolder[x][y-t]!.blockValue * 2
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(y-t, y: x), moveCompleted: {
+                                    assert(self.blockHolder[x][y-t] != nil, "shit happened:\(x):\(y)-->\(x):\(y-t)")
+                                    self.blockHolder[x][y-t]!.update()
+                                    tmp.removeFromSuperview()
                                 })
+                                blockHolder[x][y]!.removeFromSuperview()
+                                blockHolder[x][y] = nil
+                                count++
                                 break
-                            } else {
-                                var holder1 = BoardView(point: getSpecPoint(x, y: y), size: blockSize, bv: blockHolder[y][x]!.blockValue)
-                                holder1.moveMySelf(to: getSpecCenter(x-tmp+1, y: y),moveCompleted:{
-                                    holder1.removeFromSuperview()
-                                    self.view.addSubview(self.blockHolder[y][x-tmp+1]!)
+                            }else{
+                                if t==1{
+                                    break
+                                }
+                                blockHolder[x][y-t+1] = BoardView(point: getSpecPoint(y-t+1, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(y-t+1, y:x), moveCompleted: {
+                                    assert(self.blockHolder[x][y-t+1] != nil, "shit happened:\(x):\(y)-->\(x):\(y-t+1)")
+                                    self.view.addSubview( self.blockHolder[x][y-t+1]! )
+                                    tmp.removeFromSuperview()
                                 })
-                                self.blockHolder[y][x-tmp+1] = BoardView(point: self.getSpecPoint(x-tmp+1, y: y), size: self.blockSize, bv:self.blockHolder[y][x]!.blockValue)
-                                self.blockHolder[y][x]?.removeFromSuperview()
-                                self.blockHolder[y][x] = nil
-                                break
+                                blockHolder[x][y]!.removeFromSuperview()
+                                blockHolder[x][y] = nil
+                                count++
                             }
+                            break
+                        }
+                    }
+                }
+            }
+        }else if direction == .right{
+            for x in 0 ..< deminsion{
+                for y in 0 ..< deminsion-1{   //每一行
+                    if blockHolder[x][deminsion-2-y] == nil{
+                        continue
+                    }
+                    for t in deminsion-2-y+1 ..< deminsion{
+                        if blockHolder[x][t] == nil{
+                            if t == deminsion-1{
+                                //移动方块到行尾
+                                blockHolder[x][deminsion-1] = BoardView(point: getSpecPoint(deminsion-1, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(deminsion-2-y, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(deminsion-1, y: x), moveCompleted: {
+                                    self.view.addSubview( self.blockHolder[x][self.deminsion-1]! )
+                                    tmp.removeFromSuperview()
+                                })
+                                blockHolder[x][deminsion-2-y]!.removeFromSuperview()
+                                blockHolder[x][deminsion-2-y] = nil
+                                count++
+                                break
+                            }else{
+                                continue
+                            }
+                        }else{
+                            if blockHolder[x][t]!.blockValue == blockHolder[x][deminsion-2-y]!.blockValue{ //两个方块的值相同，融合
+                                blockHolder[x][t]!.blockValue = blockHolder[x][t]!.blockValue * 2
+                                let tmp = BoardView(point: getSpecPoint(deminsion-2-y, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(t, y: x), moveCompleted: {
+                                    self.blockHolder[x][t]!.update()
+                                    tmp.removeFromSuperview()
+                                })
+                                blockHolder[x][deminsion-2-y]!.removeFromSuperview()
+                                blockHolder[x][deminsion-2-y] = nil
+                                count++
+                                break
+                            }else{
+                                if t==deminsion-2-y+1{
+                                    break
+                                }
+                                blockHolder[x][t-1] = BoardView(point: getSpecPoint(t-1, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(deminsion-2-y, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(t-1, y:x), moveCompleted: {
+                                    self.view.addSubview( self.blockHolder[x][t-1]! )
+                                    tmp.removeFromSuperview()
+                                })
+                                blockHolder[x][deminsion-2-y]!.removeFromSuperview()
+                                blockHolder[x][deminsion-2-y] = nil
+                                count++
+                            }
+                            break
+                        }
+                    }
+                }
+            }
+        }else if direction == .up{
+            for y in 0 ..< deminsion{
+                for x in 1 ..< deminsion{   //每一行
+                    if blockHolder[x][y] == nil{
+                        continue
+                    }
+                    for t in 1 ... x{
+                        if blockHolder[x-t][y] == nil{
+                            if x-t == 0{
+                                //移动方块到行首
+                                blockHolder[0][y] = BoardView(point: getSpecPoint(y, y: 0), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(y, y: 0), moveCompleted: {
+                                    self.view.addSubview( self.blockHolder[0][y]! )
+                                    tmp.removeFromSuperview()
+                                })
+                                blockHolder[x][y]!.removeFromSuperview()
+                                blockHolder[x][y] = nil
+                                count++
+                                break
+                            }else{
+                                continue
+                            }
+                        }else{
+                            if blockHolder[x-t][y]!.blockValue == blockHolder[x][y]!.blockValue{ //两个方块的值相同，融合
+                                blockHolder[x-t][y]!.blockValue = blockHolder[x-t][y]!.blockValue * 2
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(y, y: x-t), moveCompleted: {
+                                    self.blockHolder[x-t][y]!.update()
+                                    tmp.removeFromSuperview()
+                                })
+                                blockHolder[x][y]!.removeFromSuperview()
+                                blockHolder[x][y] = nil
+                                count++
+                                break
+                            }else{
+                                if t==1{
+                                    break
+                                }
+                                blockHolder[x-t+1][y] = BoardView(point: getSpecPoint(y, y: x-t+1), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(y, y:x-t+1), moveCompleted: {
+                                    self.view.addSubview( self.blockHolder[x-t+1][y]! )
+                                    tmp.removeFromSuperview()
+                                })
+                                blockHolder[x][y]!.removeFromSuperview()
+                                blockHolder[x][y] = nil
+                                count++
+                            }
+                            break
+                        }
+                    }
+                }
+            }
+        }else if direction == .down{
+            for y in 0 ..< deminsion{
+                for x in 0 ..< deminsion-1{   //每一行
+                    if blockHolder[deminsion-2-x][y] == nil{
+                        continue
+                    }
+                    for t in deminsion-2-x+1 ..< deminsion{
+                        if blockHolder[t][y] == nil{
+                            if t == deminsion-1{
+                                //移动方块到行尾
+                                blockHolder[deminsion-1][y] = BoardView(point: getSpecPoint(y, y: deminsion-1), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(y, y: deminsion-2-x), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(y, y: deminsion-1), moveCompleted: {
+                                    self.view.addSubview( self.blockHolder[self.deminsion-1][y]! )
+                                    tmp.removeFromSuperview()
+                                })
+                                blockHolder[deminsion-2-x][y]!.removeFromSuperview()
+                                blockHolder[deminsion-2-x][y] = nil
+                                count++
+                                break
+                            }else{
+                                continue
+                            }
+                        }else{
+                            if blockHolder[t][y]!.blockValue == blockHolder[deminsion-2-x][y]!.blockValue{ //两个方块的值相同，融合
+                                blockHolder[t][y]!.blockValue = blockHolder[t][y]!.blockValue * 2
+                                let tmp = BoardView(point: getSpecPoint(y, y: deminsion-2-x), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(y, y: t), moveCompleted: {
+                                    self.blockHolder[t][y]!.update()
+                                    tmp.removeFromSuperview()
+                                })
+                                blockHolder[deminsion-2-x][y]!.removeFromSuperview()
+                                blockHolder[deminsion-2-x][y] = nil
+                                count++
+                                break
+                            }else{
+                                if t==deminsion-2-x+1{
+                                    break
+                                }
+                                blockHolder[t-1][y] = BoardView(point: getSpecPoint(y, y: t-1), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(y, y: deminsion-2-x), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
+                                self.view.addSubview(tmp)
+                                tmp.moveMySelf(to: getSpecCenter(y, y:t-1), moveCompleted: {
+                                    self.view.addSubview( self.blockHolder[t-1][y]! )
+                                    tmp.removeFromSuperview()
+                                })
+                                blockHolder[deminsion-2-x][y]!.removeFromSuperview()
+                                blockHolder[deminsion-2-x][y] = nil
+                                count++
+                            }
+                            break
                         }
                     }
                 }
             }
         }
+        if count > 0{
+            return true
+        }
+        return false
     }
 
     // 绘制棋盘的背景方块
@@ -214,8 +392,6 @@ class ViewController: UIViewController {
     }
     
     func initBlockHolder(){
-        var i = 0
-        var j = 0
         for i in 0 ..< deminsion{
             var tmp = [BoardView?]()
             for j in 0 ..< deminsion{
@@ -224,15 +400,55 @@ class ViewController: UIViewController {
             blockHolder.append(tmp)
         }
     }
+    
+    func hasEmptySpace()->Bool{
+        for i in blockHolder{
+            for j in i{
+                if j == nil{
+                    return true
+                }
+            }
+        }
+        return false
+    }
+    
+    func isGameOver() ->Bool{
+        for x in 0 ..< deminsion{
+            for y in 0 ..< deminsion{
+                if blockHolder[x][y] == nil{
+                    return false
+                }
+                switch (x,y){
+                case let(a,b) where a > 0:
+                    if blockHolder[a][b]!.blockValue == blockHolder[a-1][b]?.blockValue{
+                        return false
+                    }
+                case let(a,b) where a < deminsion-1:
+                    if blockHolder[a][b]!.blockValue == blockHolder[a+1][b]?.blockValue{
+                        return false
+                    }
+                case let(a,b) where b > 0:
+                    if blockHolder[a][b]!.blockValue == blockHolder[a][b-1]?.blockValue{
+                        return false
+                    }
+                case let(a,b) where b < deminsion-1:
+                    if blockHolder[a][b]!.blockValue == blockHolder[a][b+1]?.blockValue{
+                        return false
+                    }
+                default:
+                    return true
+                }
+            }
+        }
+        return true
+    }
+    
 }
 
 extension UIView {
     // 移动view
     func moveMySelf( #to: CGPoint, moveCompleted:(()->Void)? ){
-//        UIView.animateWithDuration(0.3, animations: {
-//            
-//        })
-        UIView.animateWithDuration(0.3, animations: {
+        UIView.animateWithDuration(0.2, animations: {
             self.center = to
         }) { (completed) -> Void in
             if moveCompleted != nil{
@@ -243,14 +459,11 @@ extension UIView {
     // 显示动画
     func showIn( #inview:UIView ){
         self.alpha = 0
-        self.layer.cornerRadius = 3
+        self.transform = CGAffineTransformMakeScale(0, 0)
         inview.addSubview(self)
-        UIView.animateWithDuration(0.2, animations: {
+        UIView.animateWithDuration(0.2, delay: 0.2, options: UIViewAnimationOptions.CurveLinear, animations: {
             self.alpha = 1
-        })
+            self.transform = CGAffineTransformMakeScale(1, 1)
+        }, completion: nil)
     }
 }
-//protocol GameBlock{
-//    var blockValue:Int{ get set } //方块自身的分数
-//    var label:UILabel{ get set }
-//}
