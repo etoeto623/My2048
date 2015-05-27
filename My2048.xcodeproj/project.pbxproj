@@ -13,6 +13,7 @@
 		8F5839FF1B07853100DB4602 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8F5839FE1B07853100DB4602 /* Images.xcassets */; };
 		8F583A021B07853100DB4602 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 8F583A001B07853100DB4602 /* LaunchScreen.xib */; };
 		8F583A0E1B07853100DB4602 /* My2048Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F583A0D1B07853100DB4602 /* My2048Tests.swift */; };
+		8F80B5CD1B15FF2B00146F39 /* RestartButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F80B5CC1B15FF2B00146F39 /* RestartButtonView.swift */; };
 		8FC197731B106F2C002C9B9F /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FC197721B106F2C002C9B9F /* BoardView.swift */; };
 /* End PBXBuildFile section */
 
@@ -37,6 +38,7 @@
 		8F583A071B07853100DB4602 /* My2048Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = My2048Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8F583A0C1B07853100DB4602 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8F583A0D1B07853100DB4602 /* My2048Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = My2048Tests.swift; sourceTree = "<group>"; };
+		8F80B5CC1B15FF2B00146F39 /* RestartButtonView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RestartButtonView.swift; sourceTree = "<group>"; };
 		8FC197721B106F2C002C9B9F /* BoardView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -83,6 +85,7 @@
 				8F5839F71B07853100DB4602 /* AppDelegate.swift */,
 				8F5839F91B07853100DB4602 /* ViewController.swift */,
 				8FC197721B106F2C002C9B9F /* BoardView.swift */,
+				8F80B5CC1B15FF2B00146F39 /* RestartButtonView.swift */,
 				8F5839FE1B07853100DB4602 /* Images.xcassets */,
 				8F583A001B07853100DB4602 /* LaunchScreen.xib */,
 				8F5839F51B07853100DB4602 /* Supporting Files */,
@@ -217,6 +220,7 @@
 			files = (
 				8F5839FA1B07853100DB4602 /* ViewController.swift in Sources */,
 				8FC197731B106F2C002C9B9F /* BoardView.swift in Sources */,
+				8F80B5CD1B15FF2B00146F39 /* RestartButtonView.swift in Sources */,
 				8F5839F81B07853100DB4602 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

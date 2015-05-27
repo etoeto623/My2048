@@ -11,7 +11,15 @@ import UIKit
 class ViewController: UIViewController {
 
     var board = UIView()
-    var bgBlocks = [[UIView]]()  //棋盘的背景色
+    var bgBlocks = [[UIView]]()  //棋盘的背景方块
+    var scoreBoard = UIView() //记分板
+    var scoreDisplay = UILabel() //显示分数
+    var score:Int = 0{
+        didSet {
+            self.scoreDisplay.text = "分数：\(score)"
+        }
+    }
+    
     let bgBlockColor = UIColor(red: 0.75, green: 0.7, blue: 0.64, alpha: 1) //背景方格的颜色
     var blockWidth:CGFloat = 0  //方格宽度
     let blockMargin:CGFloat = 5  //方格之间的间距
@@ -23,6 +31,10 @@ class ViewController: UIViewController {
     let boardRadius:CGFloat = 6
     let animationDuration = 0.3
     
+    var gameOverLabel = UILabel()
+    var restartButton:RestartButtonView? = nil
+    var gesture:UITapGestureRecognizer?
+    
     // 手势滑动的方向
     enum PanDirection:Int{
         case left = 1
@@ -33,9 +45,6 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // 给最上层的view绑定手势识别
-        self.view.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: "pan:"))
     }
 
     //游戏开始
@@ -48,10 +57,24 @@ class ViewController: UIViewController {
         board.layer.cornerRadius = boardRadius
         self.view.addSubview(board)
         
-        bt = board.center.y - board.bounds.width/2
-        bl = board.center.x - board.bounds.width/2
+        //初始化游戏结束label
+        gameOverLabel = UILabel(frame: CGRectMake(self.board.center.x - self.board.bounds.width / 2, self.board.center.y - self.board.bounds.width / 4, self.board.bounds.width, self.board.bounds.width / 2))
+        gameOverLabel.text = "Game Over!!!"
+        gameOverLabel.textAlignment = NSTextAlignment.Center
+        gameOverLabel.textColor = UIColor.redColor()
+        gameOverLabel.font = UIFont(name: "American Typewriter", size: 40)
+        gameOverLabel.backgroundColor = UIColor.whiteColor()
+        gameOverLabel.alpha = 0
+        
+        initScoreBoard() //初始化记分板
+                
+        // 给最上层的view绑定手势识别
+        self.view.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: "pan:"))
+        
+        bt = board.center.y - board.bounds.width/2  //棋盘到屏幕顶端的距离
+        bl = board.center.x - board.bounds.width/2 //棋盘到屏幕左侧的距离
 
-        showBlockWithDimen(dimensions: deminsion)
+        showBlockWithDimen(dimensions: deminsion) //初始化背景方块
         initBlockHolder()
         appendOneBlock()
     }
@@ -71,7 +94,18 @@ class ViewController: UIViewController {
                     if hasEmptySpace(){
                         appendOneBlock()
                         if isGameOver(){
-                            println("game over")
+                            UIView.animateWithDuration(0.3, delay: 1, options: nil, animations: {
+                                self.view.addSubview(self.gameOverLabel)
+                                self.gameOverLabel.alpha = 0.8
+                                
+                                }, completion: {completed->Void in
+                                    self.view.addSubview(self.gameOverLabel)
+                                    
+                                    self.restartButton = RestartButtonView(rect: CGRectMake(self.scoreBoard.center.x - self.scoreBoard.bounds.width / 2, self.scoreBoard.center.y - self.scoreBoard.bounds.height * 3 / 2 - 10 , self.scoreBoard.bounds.width, self.scoreBoard.bounds.height))
+                                    self.view.addSubview(self.restartButton!)
+                                    self.gesture = UITapGestureRecognizer(target: self, action: "restart:")
+                                    self.view.addGestureRecognizer(self.gesture!)
+                            } )
                         }
                     }
                 }
@@ -80,9 +114,6 @@ class ViewController: UIViewController {
     }
     
     func getPanDirection( delta:CGPoint, velocity:CGPoint )->PanDirection?{
-//        if abs(velocity.x)<80 && abs(velocity.y)<80{
-//            return nil
-//        }
         if abs(delta.x)<30 && abs(delta.y)<30{
             return nil
         }
@@ -109,6 +140,7 @@ class ViewController: UIViewController {
             appendOneBlock()
         }else {
             blockHolder[x][y] = BoardView(point: getSpecPoint(y, y: x), size: blockSize, stage: self.view)
+            score += blockHolder[x][y]!.blockValue
         }
     }
     
@@ -401,6 +433,51 @@ class ViewController: UIViewController {
         }
     }
     
+    func initScoreBoard(){
+        var width = self.board.bounds.width * 2 / 3
+        var x = (self.view.bounds.width - width) / 2
+        var y = self.board.center.y - self.board.bounds.width / 2 - 80
+        scoreBoard = UIView(frame: CGRect(origin: CGPoint(x: x, y: y), size: CGSize(width: width, height: 60)))
+        scoreBoard.backgroundColor = UIColor(red: 0.91, green: 0.83, blue: 0.64, alpha: 1)
+        scoreBoard.layer.cornerRadius = 6
+        
+        var labelX = self.scoreBoard.bounds.width / 8
+        scoreDisplay = UILabel(frame: CGRect(origin: CGPoint(x: labelX, y: 0),size:CGSize(width: self.scoreBoard.bounds.width * 3 / 4,height:self.scoreBoard.bounds.height)))
+        let font = UIFont(name: "American Typewriter", size: 24)
+        scoreDisplay.font = font
+        scoreDisplay.textColor = UIColor(red: 0.67, green: 0.14, blue: 0.56, alpha: 1)
+        scoreDisplay.text = "分数："
+        scoreDisplay.showIn(inview: self.scoreBoard)
+        scoreDisplay.textAlignment = NSTextAlignment.Center
+        self.scoreBoard.showIn(inview: self.view)
+    }
+    
+    func restart(sender:UITapGestureRecognizer){
+        let point = sender.locationInView(self.view)
+        if point.x < self.restartButton!.center.x - self.restartButton!.bounds.width / 2 ||
+            point.x > self.restartButton!.center.x + self.restartButton!.bounds.width / 2 ||
+            point.y < self.restartButton!.center.y - self.restartButton!.bounds.height / 2 ||
+            point.y > self.restartButton!.center.y + self.restartButton!.bounds.height / 2{
+            return
+        }
+
+        score = 0
+        for i in 0 ..< deminsion{
+            for j in 0 ..< deminsion{
+                if blockHolder[i][j] != nil{
+                    blockHolder[i][j]!.removeFromSuperview()
+                    blockHolder[i][j] = nil
+                }
+            }
+        }
+        appendOneBlock()
+        self.restartButton!.removeFromSuperview()
+        self.gameOverLabel.removeFromSuperview()
+        self.view.removeGestureRecognizer(self.gesture!)
+        self.gesture = nil
+        self.restartButton = nil
+    }
+    
     func hasEmptySpace()->Bool{
         for i in blockHolder{
             for j in i{
@@ -418,25 +495,15 @@ class ViewController: UIViewController {
                 if blockHolder[x][y] == nil{
                     return false
                 }
-                switch (x,y){
-                case let(a,b) where a > 0:
-                    if blockHolder[a][b]!.blockValue == blockHolder[a-1][b]?.blockValue{
+                if y < deminsion-1{
+                    if blockHolder[x][y]!.blockValue == blockHolder[x][y+1]?.blockValue{
                         return false
                     }
-                case let(a,b) where a < deminsion-1:
-                    if blockHolder[a][b]!.blockValue == blockHolder[a+1][b]?.blockValue{
+                }
+                if x < deminsion-1{
+                    if blockHolder[x][y]!.blockValue == blockHolder[x+1][y]?.blockValue{
                         return false
                     }
-                case let(a,b) where b > 0:
-                    if blockHolder[a][b]!.blockValue == blockHolder[a][b-1]?.blockValue{
-                        return false
-                    }
-                case let(a,b) where b < deminsion-1:
-                    if blockHolder[a][b]!.blockValue == blockHolder[a][b+1]?.blockValue{
-                        return false
-                    }
-                default:
-                    return true
                 }
             }
         }
@@ -461,7 +528,11 @@ extension UIView {
         self.alpha = 0
         self.transform = CGAffineTransformMakeScale(0, 0)
         inview.addSubview(self)
-        UIView.animateWithDuration(0.2, delay: 0.2, options: UIViewAnimationOptions.CurveLinear, animations: {
+//        UIView.animateWithDuration(0.2, delay: 0.2, options: UIViewAnimationOptions.CurveLinear, animations: {
+//            self.alpha = 1
+//            self.transform = CGAffineTransformMakeScale(1, 1)
+//        }, completion: nil)
+        UIView.animateWithDuration(0.2, delay: 0.2, usingSpringWithDamping: 0.5, initialSpringVelocity: 3, options: nil, animations: {
             self.alpha = 1
             self.transform = CGAffineTransformMakeScale(1, 1)
         }, completion: nil)

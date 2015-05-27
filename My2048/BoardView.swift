@@ -12,12 +12,7 @@ class BoardView: UIView{
     
     let blockRadius:CGFloat = 4
     var blockValue:Int = 0
-//        {
-//        didSet {
-//            self.label.textColor = getFontColor(blockValue)
-//            self.label.text = "\(self.blockValue)"
-//        }
-//    }
+
     var label:UILabel = UILabel()
     
     // 方块颜色和分数的对应关系234 187 25
