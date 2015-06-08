@@ -8,7 +8,7 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController,UIAlertViewDelegate {
 
     var board = UIView()
     var bgBlocks = [[UIView]]()  //棋盘的背景方块
@@ -26,7 +26,7 @@ class ViewController: UIViewController {
     var bt:CGFloat = 0  // 存储棋盘到顶层view顶端的距离
     var bl:CGFloat = 0  // 存储棋盘到顶层view左侧的距离
     var blockSize:CGSize = CGSize() //方格的大小
-    var deminsion = 4 //方格阵列的维度
+    var deminsion = 3 //方格阵列的维度
     var blockHolder = [[BoardView?]]() //存放方块的地方
     let boardRadius:CGFloat = 6
     let animationDuration = 0.3
@@ -34,6 +34,7 @@ class ViewController: UIViewController {
     var gameOverLabel = UILabel()
     var restartButton:RestartButtonView? = nil
     var gesture:UITapGestureRecognizer?
+    
     
     // 手势滑动的方向
     enum PanDirection:Int{
@@ -47,6 +48,26 @@ class ViewController: UIViewController {
         super.viewDidLoad()
     }
 
+    // UIAlertView 点击按钮后的处理事件
+    func alertView(alertView: UIAlertView, clickedButtonAtIndex buttonIndex: Int) {
+        if buttonIndex==0{
+            UIView.animateWithDuration(0.3, delay: 1, options: nil, animations: {
+                self.view.addSubview(self.gameOverLabel)
+                self.gameOverLabel.alpha = 0.8
+                
+                }, completion: {completed->Void in
+                    self.view.addSubview(self.gameOverLabel)
+                    
+                    self.restartButton = RestartButtonView(rect: CGRectMake(self.scoreBoard.center.x - self.scoreBoard.bounds.width / 2, self.scoreBoard.center.y - self.scoreBoard.bounds.height * 3 / 2 - 10 , self.scoreBoard.bounds.width, self.scoreBoard.bounds.height))
+                    self.view.addSubview(self.restartButton!)
+                    self.gesture = UITapGestureRecognizer(target: self, action: "restart:")
+                    self.view.addGestureRecognizer(self.gesture!)
+            } )
+        } else {
+            restartGame()
+        }
+    }
+    
     //游戏开始
     @IBAction func startButtonTapped(sender: UIButton) {
         let paddingTwoSide:CGFloat = 10
@@ -94,18 +115,8 @@ class ViewController: UIViewController {
                     if hasEmptySpace(){
                         appendOneBlock()
                         if isGameOver(){
-                            UIView.animateWithDuration(0.3, delay: 1, options: nil, animations: {
-                                self.view.addSubview(self.gameOverLabel)
-                                self.gameOverLabel.alpha = 0.8
-                                
-                                }, completion: {completed->Void in
-                                    self.view.addSubview(self.gameOverLabel)
-                                    
-                                    self.restartButton = RestartButtonView(rect: CGRectMake(self.scoreBoard.center.x - self.scoreBoard.bounds.width / 2, self.scoreBoard.center.y - self.scoreBoard.bounds.height * 3 / 2 - 10 , self.scoreBoard.bounds.width, self.scoreBoard.bounds.height))
-                                    self.view.addSubview(self.restartButton!)
-                                    self.gesture = UITapGestureRecognizer(target: self, action: "restart:")
-                                    self.view.addGestureRecognizer(self.gesture!)
-                            } )
+                            let alert = UIAlertView(title: "Oops...", message: "游戏结束，分数\(self.score)", delegate: self, cancelButtonTitle: "我知道了", otherButtonTitles: "我要再战")
+                            alert.show()
                         }
                     }
                 }
@@ -140,7 +151,6 @@ class ViewController: UIViewController {
             appendOneBlock()
         }else {
             blockHolder[x][y] = BoardView(point: getSpecPoint(y, y: x), size: blockSize, stage: self.view)
-            score += blockHolder[x][y]!.blockValue
         }
     }
     
@@ -176,6 +186,7 @@ class ViewController: UIViewController {
                         }else{
                             if blockHolder[x][y-t]!.blockValue == blockHolder[x][y]!.blockValue{ //两个方块的值相同，融合
                                 blockHolder[x][y-t]!.blockValue = blockHolder[x][y-t]!.blockValue * 2
+                                score += blockHolder[x][y-t]!.blockValue
                                 let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y-t, y: x), moveCompleted: {
@@ -235,6 +246,7 @@ class ViewController: UIViewController {
                         }else{
                             if blockHolder[x][t]!.blockValue == blockHolder[x][deminsion-2-y]!.blockValue{ //两个方块的值相同，融合
                                 blockHolder[x][t]!.blockValue = blockHolder[x][t]!.blockValue * 2
+                                score += blockHolder[x][t]!.blockValue
                                 let tmp = BoardView(point: getSpecPoint(deminsion-2-y, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(t, y: x), moveCompleted: {
@@ -292,6 +304,7 @@ class ViewController: UIViewController {
                         }else{
                             if blockHolder[x-t][y]!.blockValue == blockHolder[x][y]!.blockValue{ //两个方块的值相同，融合
                                 blockHolder[x-t][y]!.blockValue = blockHolder[x-t][y]!.blockValue * 2
+                                score += blockHolder[x-t][y]!.blockValue
                                 let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y, y: x-t), moveCompleted: {
@@ -349,6 +362,7 @@ class ViewController: UIViewController {
                         }else{
                             if blockHolder[t][y]!.blockValue == blockHolder[deminsion-2-x][y]!.blockValue{ //两个方块的值相同，融合
                                 blockHolder[t][y]!.blockValue = blockHolder[t][y]!.blockValue * 2
+                                score += blockHolder[t][y]!.blockValue
                                 let tmp = BoardView(point: getSpecPoint(y, y: deminsion-2-x), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y, y: t), moveCompleted: {
@@ -446,7 +460,7 @@ class ViewController: UIViewController {
         let font = UIFont(name: "American Typewriter", size: 24)
         scoreDisplay.font = font
         scoreDisplay.textColor = UIColor(red: 0.67, green: 0.14, blue: 0.56, alpha: 1)
-        scoreDisplay.text = "分数："
+        scoreDisplay.text = "分数：0"
         scoreDisplay.showIn(inview: self.scoreBoard)
         scoreDisplay.textAlignment = NSTextAlignment.Center
         self.scoreBoard.showIn(inview: self.view)
@@ -460,7 +474,10 @@ class ViewController: UIViewController {
             point.y > self.restartButton!.center.y + self.restartButton!.bounds.height / 2{
             return
         }
-
+        restartGame()
+    }
+    
+    func restartGame(){
         score = 0
         for i in 0 ..< deminsion{
             for j in 0 ..< deminsion{
@@ -471,9 +488,11 @@ class ViewController: UIViewController {
             }
         }
         appendOneBlock()
-        self.restartButton!.removeFromSuperview()
+        self.restartButton?.removeFromSuperview()
         self.gameOverLabel.removeFromSuperview()
-        self.view.removeGestureRecognizer(self.gesture!)
+        if let tmp = self.gesture{
+            self.view.removeGestureRecognizer(self.gesture!)
+        }
         self.gesture = nil
         self.restartButton = nil
     }
