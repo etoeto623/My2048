@@ -13,8 +13,9 @@
       "scale" : "3x"
     },
     {
-      "idiom" : "iphone",
       "size" : "40x40",
+      "idiom" : "iphone",
+      "filename" : "lf.png",
       "scale" : "2x"
     },
     {
@@ -23,8 +24,9 @@
       "scale" : "3x"
     },
     {
-      "idiom" : "iphone",
       "size" : "60x60",
+      "idiom" : "iphone",
+      "filename" : "lf120.png",
       "scale" : "2x"
     },
     {

@@ -12,6 +12,7 @@ class BoardView: UIView{
     
     let blockRadius:CGFloat = 4
     var blockValue:Int = 0
+    var vc:ViewController?;
 
     var label:UILabel = UILabel()
     
@@ -37,15 +38,16 @@ class BoardView: UIView{
         case big = 35
     }
     
-    init( point:CGPoint, size:CGSize, stage:UIView ){
+    init( point:CGPoint, size:CGSize, stage:UIView, vc:ViewController ){
         super.init(frame: CGRect(origin: point,size: size))
+        self.vc = vc
         self.label = UILabel(frame: CGRect(origin: CGPoint(x: 0, y: 0), size:size))
         let bv = getRandScore()
         self.blockValue = bv
         self.layer.cornerRadius = blockRadius
         self.backgroundColor = self.bgColorWithScore[bv]
         self.label.text = "\(self.blockValue)"
-        var font = UIFont(name: "American Typewriter", size: getFontSize(bv))
+        let font = UIFont(name: "American Typewriter", size: getFontSize(bv))
         self.label.font = font
         self.label.textAlignment = NSTextAlignment.Center
         self.label.textColor = getFontColor(bv)
@@ -53,14 +55,15 @@ class BoardView: UIView{
         self.showIn(inview: stage)
     }
     
-    init( point:CGPoint, size:CGSize, bv:Int ){
+    init( point:CGPoint, size:CGSize, bv:Int, vc:ViewController ){
         super.init(frame: CGRect(origin: point,size: size))
+        self.vc = vc
         self.label = UILabel(frame: CGRect(origin: CGPoint(x: 0, y: 0), size:size))
         self.blockValue = bv
         self.layer.cornerRadius = blockRadius
         self.backgroundColor = self.bgColorWithScore[bv]
         self.label.text = "\(self.blockValue)"
-        var font = UIFont(name: "American Typewriter", size: getFontSize(bv))
+        let font = UIFont(name: "American Typewriter", size: getFontSize(bv))
         self.label.font = font
         self.label.textAlignment = NSTextAlignment.Center
         self.label.textColor = getFontColor(bv)
@@ -68,15 +71,12 @@ class BoardView: UIView{
 //        self.showIn(inview: stage)
     }
     
-    func updateLabel(  ){
-        
-    }
-    
     func getRandScore() -> Int{
         return arc4random() % 2 == 0 ? 2 : 4
     }
     
     func update(){
+        self.label.font = UIFont(name: "American Typewriter", size: getFontSize(self.blockValue))
         self.label.textColor = getFontColor(self.blockValue)
         self.label.text = "\(self.blockValue)"
         self.backgroundColor = self.bgColorWithScore[self.blockValue]
@@ -89,13 +89,13 @@ class BoardView: UIView{
     private func getFontSize( score:Int )->CGFloat{
         switch score{
         case 1 ..< 100 :
-            return FontSize.big.rawValue
+            return max(13,FontSize.big.rawValue - CGFloat((self.vc!.deminsion - 4)*8))
         case 100 ..< 1000 :
-            return FontSize.middle.rawValue
+            return max(13,FontSize.middle.rawValue - CGFloat((self.vc!.deminsion - 4)*8))
         case 1000 ..< 100000 :
-            return FontSize.small.rawValue
+            return max(13,FontSize.small.rawValue - CGFloat((self.vc!.deminsion - 4)*8))
         default:
-            return FontSize.small.rawValue
+            return max(13,FontSize.small.rawValue - CGFloat((self.vc!.deminsion - 4)*8))
         }
     }
     private func getFontColor( score:Int )->UIColor{

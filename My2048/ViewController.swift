@@ -26,10 +26,11 @@ class ViewController: UIViewController,UIAlertViewDelegate {
     var bt:CGFloat = 0  // 存储棋盘到顶层view顶端的距离
     var bl:CGFloat = 0  // 存储棋盘到顶层view左侧的距离
     var blockSize:CGSize = CGSize() //方格的大小
-    var deminsion = 3 //方格阵列的维度
+    var deminsion = 4 //方格阵列的维度
+    var deminBak = 4
     var blockHolder = [[BoardView?]]() //存放方块的地方
     let boardRadius:CGFloat = 6
-    let animationDuration = 0.3
+    let animationDuration = 0.03
     
     var gameOverLabel = UILabel()
     var restartButton:RestartButtonView? = nil
@@ -51,7 +52,7 @@ class ViewController: UIViewController,UIAlertViewDelegate {
     // UIAlertView 点击按钮后的处理事件
     func alertView(alertView: UIAlertView, clickedButtonAtIndex buttonIndex: Int) {
         if buttonIndex==0{
-            UIView.animateWithDuration(0.3, delay: 1, options: nil, animations: {
+            UIView.animateWithDuration(0.3, delay: 1, options: [], animations: {
                 self.view.addSubview(self.gameOverLabel)
                 self.gameOverLabel.alpha = 0.8
                 
@@ -98,6 +99,11 @@ class ViewController: UIViewController,UIAlertViewDelegate {
         showBlockWithDimen(dimensions: deminsion) //初始化背景方块
         initBlockHolder()
         appendOneBlock()
+        
+        // 双击设置
+        let dbTap = UITapGestureRecognizer(target: self, action: "setLevel:")
+        dbTap.numberOfTapsRequired = 3
+        self.view.addGestureRecognizer(dbTap)
     }
     
     
@@ -131,13 +137,13 @@ class ViewController: UIViewController,UIAlertViewDelegate {
         let sw = (delta.x,delta.y)
         switch sw{
         case let(x,y) where x>0 && (y==0 || abs(x/y)>2.5):
-            return PanDirection.right
+            return .right
         case let(x,y) where x<0 && (y==0 || abs(x/y)>2.5):
-            return PanDirection.left
+            return .left
         case let(x,y) where y>0 && (x==0 || abs(y/x)>2.5):
-            return PanDirection.down
+            return .down
         case let(x,y) where y<0 && (x==0 || abs(y/x)>2.5):
-            return PanDirection.up
+            return .up
         default:
             return nil
         }
@@ -147,10 +153,10 @@ class ViewController: UIViewController,UIAlertViewDelegate {
     func appendOneBlock(){
         let x = Int(arc4random()) % self.deminsion
         let y = Int(arc4random()) % self.deminsion
-        if let tmp = blockHolder[x][y]{
+        if let _ = blockHolder[x][y]{
             appendOneBlock()
         }else {
-            blockHolder[x][y] = BoardView(point: getSpecPoint(y, y: x), size: blockSize, stage: self.view)
+            blockHolder[x][y] = BoardView(point: getSpecPoint(y, y: x), size: blockSize, stage: self.view, vc:self)
         }
     }
     
@@ -168,8 +174,8 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                         if blockHolder[x][y-t] == nil{
                             if y-t == 0{
                                 //移动方块到行首
-                                blockHolder[x][0] = BoardView(point: getSpecPoint(0, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
-                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                blockHolder[x][0] = BoardView(point: getSpecPoint(0, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue,vc:self)
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(0, y: x), moveCompleted: {
                                     assert(self.blockHolder[x][0] != nil, "shit happened:\(x):\(y)-->\(x):\(0)")
@@ -187,7 +193,7 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                             if blockHolder[x][y-t]!.blockValue == blockHolder[x][y]!.blockValue{ //两个方块的值相同，融合
                                 blockHolder[x][y-t]!.blockValue = blockHolder[x][y-t]!.blockValue * 2
                                 score += blockHolder[x][y-t]!.blockValue
-                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y-t, y: x), moveCompleted: {
                                     assert(self.blockHolder[x][y-t] != nil, "shit happened:\(x):\(y)-->\(x):\(y-t)")
@@ -202,8 +208,8 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                                 if t==1{
                                     break
                                 }
-                                blockHolder[x][y-t+1] = BoardView(point: getSpecPoint(y-t+1, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
-                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                blockHolder[x][y-t+1] = BoardView(point: getSpecPoint(y-t+1, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue,vc:self)
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y-t+1, y:x), moveCompleted: {
                                     assert(self.blockHolder[x][y-t+1] != nil, "shit happened:\(x):\(y)-->\(x):\(y-t+1)")
@@ -229,8 +235,8 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                         if blockHolder[x][t] == nil{
                             if t == deminsion-1{
                                 //移动方块到行尾
-                                blockHolder[x][deminsion-1] = BoardView(point: getSpecPoint(deminsion-1, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
-                                let tmp = BoardView(point: getSpecPoint(deminsion-2-y, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
+                                blockHolder[x][deminsion-1] = BoardView(point: getSpecPoint(deminsion-1, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue,vc:self)
+                                let tmp = BoardView(point: getSpecPoint(deminsion-2-y, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(deminsion-1, y: x), moveCompleted: {
                                     self.view.addSubview( self.blockHolder[x][self.deminsion-1]! )
@@ -247,7 +253,7 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                             if blockHolder[x][t]!.blockValue == blockHolder[x][deminsion-2-y]!.blockValue{ //两个方块的值相同，融合
                                 blockHolder[x][t]!.blockValue = blockHolder[x][t]!.blockValue * 2
                                 score += blockHolder[x][t]!.blockValue
-                                let tmp = BoardView(point: getSpecPoint(deminsion-2-y, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(deminsion-2-y, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(t, y: x), moveCompleted: {
                                     self.blockHolder[x][t]!.update()
@@ -261,8 +267,8 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                                 if t==deminsion-2-y+1{
                                     break
                                 }
-                                blockHolder[x][t-1] = BoardView(point: getSpecPoint(t-1, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
-                                let tmp = BoardView(point: getSpecPoint(deminsion-2-y, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue)
+                                blockHolder[x][t-1] = BoardView(point: getSpecPoint(t-1, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue,vc:self)
+                                let tmp = BoardView(point: getSpecPoint(deminsion-2-y, y: x), size: blockSize, bv: blockHolder[x][deminsion-2-y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(t-1, y:x), moveCompleted: {
                                     self.view.addSubview( self.blockHolder[x][t-1]! )
@@ -287,8 +293,8 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                         if blockHolder[x-t][y] == nil{
                             if x-t == 0{
                                 //移动方块到行首
-                                blockHolder[0][y] = BoardView(point: getSpecPoint(y, y: 0), size: blockSize, bv: blockHolder[x][y]!.blockValue)
-                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                blockHolder[0][y] = BoardView(point: getSpecPoint(y, y: 0), size: blockSize, bv: blockHolder[x][y]!.blockValue,vc:self)
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y, y: 0), moveCompleted: {
                                     self.view.addSubview( self.blockHolder[0][y]! )
@@ -305,7 +311,7 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                             if blockHolder[x-t][y]!.blockValue == blockHolder[x][y]!.blockValue{ //两个方块的值相同，融合
                                 blockHolder[x-t][y]!.blockValue = blockHolder[x-t][y]!.blockValue * 2
                                 score += blockHolder[x-t][y]!.blockValue
-                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y, y: x-t), moveCompleted: {
                                     self.blockHolder[x-t][y]!.update()
@@ -319,8 +325,8 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                                 if t==1{
                                     break
                                 }
-                                blockHolder[x-t+1][y] = BoardView(point: getSpecPoint(y, y: x-t+1), size: blockSize, bv: blockHolder[x][y]!.blockValue)
-                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue)
+                                blockHolder[x-t+1][y] = BoardView(point: getSpecPoint(y, y: x-t+1), size: blockSize, bv: blockHolder[x][y]!.blockValue,vc:self)
+                                let tmp = BoardView(point: getSpecPoint(y, y: x), size: blockSize, bv: blockHolder[x][y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y, y:x-t+1), moveCompleted: {
                                     self.view.addSubview( self.blockHolder[x-t+1][y]! )
@@ -345,8 +351,8 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                         if blockHolder[t][y] == nil{
                             if t == deminsion-1{
                                 //移动方块到行尾
-                                blockHolder[deminsion-1][y] = BoardView(point: getSpecPoint(y, y: deminsion-1), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
-                                let tmp = BoardView(point: getSpecPoint(y, y: deminsion-2-x), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
+                                blockHolder[deminsion-1][y] = BoardView(point: getSpecPoint(y, y: deminsion-1), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue,vc:self)
+                                let tmp = BoardView(point: getSpecPoint(y, y: deminsion-2-x), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y, y: deminsion-1), moveCompleted: {
                                     self.view.addSubview( self.blockHolder[self.deminsion-1][y]! )
@@ -363,7 +369,7 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                             if blockHolder[t][y]!.blockValue == blockHolder[deminsion-2-x][y]!.blockValue{ //两个方块的值相同，融合
                                 blockHolder[t][y]!.blockValue = blockHolder[t][y]!.blockValue * 2
                                 score += blockHolder[t][y]!.blockValue
-                                let tmp = BoardView(point: getSpecPoint(y, y: deminsion-2-x), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
+                                let tmp = BoardView(point: getSpecPoint(y, y: deminsion-2-x), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y, y: t), moveCompleted: {
                                     self.blockHolder[t][y]!.update()
@@ -377,8 +383,8 @@ class ViewController: UIViewController,UIAlertViewDelegate {
                                 if t==deminsion-2-x+1{
                                     break
                                 }
-                                blockHolder[t-1][y] = BoardView(point: getSpecPoint(y, y: t-1), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
-                                let tmp = BoardView(point: getSpecPoint(y, y: deminsion-2-x), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue)
+                                blockHolder[t-1][y] = BoardView(point: getSpecPoint(y, y: t-1), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue,vc:self)
+                                let tmp = BoardView(point: getSpecPoint(y, y: deminsion-2-x), size: blockSize, bv: blockHolder[deminsion-2-x][y]!.blockValue,vc:self)
                                 self.view.addSubview(tmp)
                                 tmp.moveMySelf(to: getSpecCenter(y, y:t-1), moveCompleted: {
                                     self.view.addSubview( self.blockHolder[t-1][y]! )
@@ -401,7 +407,14 @@ class ViewController: UIViewController,UIAlertViewDelegate {
     }
 
     // 绘制棋盘的背景方块
-    func showBlockWithDimen( #dimensions: Int ){
+    func showBlockWithDimen( dimensions dimensions: Int ){
+        for rows in bgBlocks{
+            for block in rows{
+                block.removeFromSuperview()
+            }
+        }
+        bgBlocks = [[UIView]]();
+        
         blockWidth = ( self.board.bounds.width - blockMargin * CGFloat(dimensions+1)) / CGFloat(dimensions)
         blockSize = CGSize(width: blockWidth, height: blockWidth)
 
@@ -438,9 +451,10 @@ class ViewController: UIViewController,UIAlertViewDelegate {
     }
     
     func initBlockHolder(){
-        for i in 0 ..< deminsion{
+        blockHolder = [[BoardView?]]();
+        for _ in 0 ..< deminsion{
             var tmp = [BoardView?]()
-            for j in 0 ..< deminsion{
+            for _ in 0 ..< deminsion{
                 tmp.append(nil)
             }
             blockHolder.append(tmp)
@@ -448,14 +462,14 @@ class ViewController: UIViewController,UIAlertViewDelegate {
     }
     
     func initScoreBoard(){
-        var width = self.board.bounds.width * 2 / 3
-        var x = (self.view.bounds.width - width) / 2
-        var y = self.board.center.y - self.board.bounds.width / 2 - 80
+        let width = self.board.bounds.width * 2 / 3
+        let x = (self.view.bounds.width - width) / 2
+        let y = self.board.center.y - self.board.bounds.width / 2 - 80
         scoreBoard = UIView(frame: CGRect(origin: CGPoint(x: x, y: y), size: CGSize(width: width, height: 60)))
         scoreBoard.backgroundColor = UIColor(red: 0.91, green: 0.83, blue: 0.64, alpha: 1)
         scoreBoard.layer.cornerRadius = 6
         
-        var labelX = self.scoreBoard.bounds.width / 8
+        let labelX = self.scoreBoard.bounds.width / 8
         scoreDisplay = UILabel(frame: CGRect(origin: CGPoint(x: labelX, y: 0),size:CGSize(width: self.scoreBoard.bounds.width * 3 / 4,height:self.scoreBoard.bounds.height)))
         let font = UIFont(name: "American Typewriter", size: 24)
         scoreDisplay.font = font
@@ -464,6 +478,26 @@ class ViewController: UIViewController,UIAlertViewDelegate {
         scoreDisplay.showIn(inview: self.scoreBoard)
         scoreDisplay.textAlignment = NSTextAlignment.Center
         self.scoreBoard.showIn(inview: self.view)
+    }
+    
+    func setLevel( sender:UITapGestureRecognizer ){
+        let alert = UIAlertController(title: "恭喜中了彩蛋", message: "输入2-6的数字试试", preferredStyle: UIAlertControllerStyle.Alert)
+        alert.addTextFieldWithConfigurationHandler { (field) -> Void in
+            field.placeholder = "输入游戏级别"
+        }
+        //增加按钮
+        let actionOK = UIAlertAction(title: "好了", style: UIAlertActionStyle.Default) { (action) -> Void in
+            if let level = alert.textFields![0].text{
+                if let levelInt = Int(level){
+                    self.deminsion = min(max(2, levelInt),6)
+                    self.restartGame()
+                }
+            }
+        }
+        let actionNO = UIAlertAction(title: "算了", style: UIAlertActionStyle.Destructive, handler: nil)
+        alert.addAction(actionOK)
+        alert.addAction(actionNO)
+        self.showViewController(alert, sender: nil)
     }
     
     func restart(sender:UITapGestureRecognizer){
@@ -479,18 +513,21 @@ class ViewController: UIViewController,UIAlertViewDelegate {
     
     func restartGame(){
         score = 0
-        for i in 0 ..< deminsion{
-            for j in 0 ..< deminsion{
+        for i in 0 ..< deminBak{
+            for j in 0 ..< deminBak{
                 if blockHolder[i][j] != nil{
                     blockHolder[i][j]!.removeFromSuperview()
                     blockHolder[i][j] = nil
                 }
             }
         }
+        initBlockHolder()
+        deminBak = deminsion
+        showBlockWithDimen(dimensions: self.deminsion)
         appendOneBlock()
         self.restartButton?.removeFromSuperview()
         self.gameOverLabel.removeFromSuperview()
-        if let tmp = self.gesture{
+        if let _ = self.gesture{
             self.view.removeGestureRecognizer(self.gesture!)
         }
         self.gesture = nil
@@ -533,8 +570,8 @@ class ViewController: UIViewController,UIAlertViewDelegate {
 
 extension UIView {
     // 移动view
-    func moveMySelf( #to: CGPoint, moveCompleted:(()->Void)? ){
-        UIView.animateWithDuration(0.2, animations: {
+    func moveMySelf( to to: CGPoint, moveCompleted:(()->Void)? ){
+        UIView.animateWithDuration(0.08, animations: {
             self.center = to
         }) { (completed) -> Void in
             if moveCompleted != nil{
@@ -543,7 +580,7 @@ extension UIView {
         }
     }
     // 显示动画
-    func showIn( #inview:UIView ){
+    func showIn( inview inview:UIView ){
         self.alpha = 0
         self.transform = CGAffineTransformMakeScale(0, 0)
         inview.addSubview(self)
@@ -551,7 +588,7 @@ extension UIView {
 //            self.alpha = 1
 //            self.transform = CGAffineTransformMakeScale(1, 1)
 //        }, completion: nil)
-        UIView.animateWithDuration(0.2, delay: 0.2, usingSpringWithDamping: 0.5, initialSpringVelocity: 3, options: nil, animations: {
+        UIView.animateWithDuration(0.1, delay: 0.2, usingSpringWithDamping: 0.5, initialSpringVelocity: 3, options: [], animations: {
             self.alpha = 1
             self.transform = CGAffineTransformMakeScale(1, 1)
         }, completion: nil)
